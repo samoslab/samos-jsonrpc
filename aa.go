@@ -18,17 +18,6 @@ type (
 		Params() interface{}
 		Result() interface{}
 	}
-	Servicer interface {
-		MethodName(HandleParamsResulter) string
-		Handlers() []HandleParamsResulter
-	}
-	UserService struct {
-		SignUpHandler HandleParamsResulter
-	}
-	BalanceService struct {
-		BalanceHandler       HandleParamsResulter
-		WalletBalanceHandler HandleParamsResulter
-	}
 )
 
 type (
@@ -65,32 +54,11 @@ func (h EchoHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessage
 	}, nil
 }
 
-func (us *UserService) MethodName(h HandleParamsResulter) string {
-	return "UserService." + h.Name()
-}
-
-func (us *UserService) Handlers() []HandleParamsResulter {
-	return []HandleParamsResulter{us.SignUpHandler}
-}
-
-func NewUserService() *UserService {
-	return &UserService{
-		SignUpHandler: EchoHandler{},
-	}
-}
-
-func (us *BalanceService) MethodName(h HandleParamsResulter) string {
-	return "BalanceService." + h.Name()
-}
-
-func (us *BalanceService) Handlers() []HandleParamsResulter {
-	return []HandleParamsResulter{us.BalanceHandler, us.WalletBalanceHandler}
-}
-
-func NewBalanceService() *BalanceService {
-	return &BalanceService{
-		BalanceHandler:       rpcservice.BalanceHandler{},
-		WalletBalanceHandler: rpcservice.WalletBalanceHandler{},
+func NewHandlers() []HandleParamsResulter {
+	return []HandleParamsResulter{
+		EchoHandler{},
+		rpcservice.BalanceHandler{},
+		rpcservice.WalletBalanceHandler{},
 	}
 }
 
@@ -98,11 +66,9 @@ func main() {
 
 	mr := jsonrpc.NewMethodRepository()
 
-	for _, s := range []Servicer{NewUserService(), NewBalanceService()} {
-		for _, h := range s.Handlers() {
-			fmt.Printf("%s\n", s.MethodName(h))
-			mr.RegisterMethod(s.MethodName(h), h, h.Params(), h.Result())
-		}
+	for _, h := range NewHandlers() {
+		fmt.Printf("%s\n", h.Name())
+		mr.RegisterMethod(h.Name(), h, h.Params(), h.Result())
 	}
 
 	http.Handle("/jrpc", mr)
