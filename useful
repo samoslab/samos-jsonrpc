@@ -1,0 +1,17 @@
+curl -X POST -H "Content-Type:application/json" -d '{"id":"12", "method":"Main.Echo", "params":{"name":"liu"}, "jsonrpc":"2.0"}' http://127.0.0.1:8080/jrpc
+{"id":"12","jsonrpc":"2.0","result":{"message":"Hello, liu"}}
+
+curl -X POST -H "Content-Type:application/json" -d '{"id":"12", "method":"version", "jsonrpc":"2.0"}' http://127.0.0.1:8080/jrpc
+{"id":"12","jsonrpc":"2.0","result":{"version":"0.23.0","commit":"452491da01d7ce66c4ed6c01e19f986e1dda34ea"}}
+
+curl -X POST -H "Content-Type:application/json" -d '{"id":"12", "method":"outputs", "params":{"addrs":"XUGdPaVnMh7jtzPe3zkrf9FKh5nztFnQU5"}, "jsonrpc":"2.0"}' http://127.0.0.1:8080/jrpc
+{"id":"12","jsonrpc":"2.0","result":{"head_outputs":[{"hash":"fed15e8506d0e0898510311850b8863ef6d9a499215ae8823a1e3fb9c8140ab2","block_seq":1,"src_tx":"86564b421cd3d4fe6f5f2d7a3e5db9d6fc340892bddd3a150533dff7036d0efe","address":"XUGdPaVnMh7jtzPe3zkrf9FKh5nztFnQU5","coins":"1000000.000000","hours":1}],"outgoing_outputs":[],"incoming_outputs":[]}}
+
+curl -X POST -H "Content-Type:application/json" -d '{"jsonrpc":"2.0", "id":"12", "method":"outputs", "params":{"hashes":"ffbdfdbf3427d04f445c33e867845bec1ee64a9dfe0d0fa8284547c2226fdfa9"}}' http://127.0.0.1:8080/jrpc
+{"id":"12","jsonrpc":"2.0","result":{"head_outputs":[{"hash":"ffbdfdbf3427d04f445c33e867845bec1ee64a9dfe0d0fa8284547c2226fdfa9","block_seq":1,"src_tx":"86564b421cd3d4fe6f5f2d7a3e5db9d6fc340892bddd3a150533dff7036d0efe","address":"ckCTV4r1pNuz6j2VBRHhaJN9HsCLY7muLV","coins":"1000000.000000","hours":1}],"outgoing_outputs":[],"incoming_outputs":[]}}
+
+curl -X POST -H "Content-Type:application/json" -d '{"jsonrpc":"2.0", "id":"12", "method":"walletBalance", "params":{"id":"skycoin_cli.wlt"}}' http://127.0.0.1:8080/jrpc
+{"id":"12","jsonrpc":"2.0","result":{"confirmed":{"coins":2400000,"hours":2945},"predicted":{"coins":2400000,"hours":2945}}}
+
+curl -X POST -H "Content-Type:application/json" -d '{"jsonrpc":"2.0", "id":"12", "method":"balance", "params":{"addrs":"XUGdPaVnMh7jtzPe3zkrf9FKh5nztFnQU5,21N2iJ1qnQRiJWcEqNRxXwfNp8QcmiyhtPy"}}' http://127.0.0.1:8080/jrpc
+{"id":"12","jsonrpc":"2.0","result":{"confirmed":{"coins":2000000000000,"hours":54638884446},"predicted":{"coins":2000000000000,"hours":54638884446}}}
