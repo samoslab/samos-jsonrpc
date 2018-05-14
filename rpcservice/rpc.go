@@ -30,14 +30,6 @@ type (
 		Hashes string `json:"hashes"`
 	}
 
-	OnlyIDRequest struct {
-		ID string `json:"id"`
-	}
-
-	BalanceRequest struct {
-		Addrs string `json:"addrs"`
-	}
-
 	WalletCreateRequest struct {
 		Seed     string `json:"seed"`
 		Lable    string `json:"label"`
@@ -79,9 +71,6 @@ type (
 	TransactionRequest struct {
 		Txid string `json:"txid"`
 	}
-
-	WalletBalanceHandler struct{}
-	BalanceHandler       struct{}
 
 	WalletHandler       struct{}
 	WalletCreateHandler struct{}
@@ -197,51 +186,6 @@ func (h WalletHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessa
 	return output, nil
 }
 
-func (h BalanceHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessage) (interface{}, *jsonrpc.Error) {
-	var req BalanceRequest
-	if err := jsonrpc.Unmarshal(params, &req); err != nil {
-		return nil, ErrCustomise(err)
-	}
-	if req.Addrs == "" {
-		return nil, jsonrpc.ErrInvalidParams()
-	}
-
-	url := fmt.Sprintf("http://127.0.0.1:6420/balance?addrs=%s", req.Addrs)
-	fmt.Printf("url %s\n", url)
-	byteBody, err := SendRequest("GET", url, nil)
-	if err != nil {
-		return nil, ErrCustomise(err)
-	}
-	output := wallet.BalancePair{}
-	if err := json.Unmarshal(byteBody, &output); err != nil {
-		return nil, ErrCustomise(err)
-	}
-	return output, nil
-}
-
-func (h WalletBalanceHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessage) (interface{}, *jsonrpc.Error) {
-	var req OnlyIDRequest
-	if err := jsonrpc.Unmarshal(params, &req); err != nil {
-		return nil, ErrCustomise(err)
-	}
-	fmt.Printf("id %s\n", req.ID)
-	if req.ID == "" {
-		return nil, jsonrpc.ErrInvalidParams()
-	}
-
-	url := fmt.Sprintf("http://127.0.0.1:6420/wallet/balance?id=%s", req.ID)
-	fmt.Printf("url %s\n", url)
-	byteBody, err := SendRequest("GET", url, nil)
-	if err != nil {
-		return nil, ErrCustomise(err)
-	}
-	output := wallet.BalancePair{}
-	if err := json.Unmarshal(byteBody, &output); err != nil {
-		return nil, ErrCustomise(err)
-	}
-	return output, nil
-}
-
 func (h OutputsHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessage) (interface{}, *jsonrpc.Error) {
 	req := &OutputsRequest{}
 	if err := jsonrpc.Unmarshal(params, req); err != nil {
@@ -322,13 +266,13 @@ func RegisterMethod() *jsonrpc.MethodRepository {
 	if err := mr.RegisterMethod("outputs", OutputsHandler{}, OutputsRequest{}, visor.ReadableOutputSet{}); err != nil {
 		log.Fatalln(err)
 	}
-	if err := mr.RegisterMethod("walletBalance", WalletBalanceHandler{}, OnlyIDRequest{}, wallet.BalancePair{}); err != nil {
-		log.Fatalln(err)
-	}
+	//if err := mr.RegisterMethod("walletBalance", WalletBalanceHandler{}, OnlyIDRequest{}, wallet.BalancePair{}); err != nil {
+	//log.Fatalln(err)
+	//}
 
-	if err := mr.RegisterMethod("balance", BalanceHandler{}, BalanceRequest{}, wallet.BalancePair{}); err != nil {
-		log.Fatalln(err)
-	}
+	//if err := mr.RegisterMethod("balance", BalanceHandler{}, BalanceRequest{}, wallet.BalancePair{}); err != nil {
+	//	log.Fatalln(err)
+	//}
 
 	if err := mr.RegisterMethod("wallet", WalletHandler{}, OnlyIDRequest{}, wallet.Wallet{}); err != nil {
 		log.Fatalln(err)
@@ -346,15 +290,15 @@ func RegisterMethod() *jsonrpc.MethodRepository {
 		log.Fatalln(err)
 	}
 
-	if err := mr.RegisterMethod("encryptWallet", EncryptWalletHandler{}, EncryptWalletRequest{}, wallet.Wallet{}); err != nil {
-		log.Fatalln(err)
-	}
-	if err := mr.RegisterMethod("decryptWallet", DecryptWalletHandler{}, EncryptWalletRequest{}, wallet.Wallet{}); err != nil {
-		log.Fatalln(err)
-	}
-	if err := mr.RegisterMethod("block", BlockHandler{}, BlockRequest{}, wallet.Wallet{}); err != nil {
-		log.Fatalln(err)
-	}
+	//if err := mr.RegisterMethod("encryptWallet", EncryptWalletHandler{}, EncryptWalletRequest{}, wallet.Wallet{}); err != nil {
+	//log.Fatalln(err)
+	//}
+	//if err := mr.RegisterMethod("decryptWallet", DecryptWalletHandler{}, EncryptWalletRequest{}, wallet.Wallet{}); err != nil {
+	//log.Fatalln(err)
+	//}
+	//if err := mr.RegisterMethod("block", BlockHandler{}, BlockRequest{}, wallet.Wallet{}); err != nil {
+	//log.Fatalln(err)
+	//}
 
 	return mr
 
