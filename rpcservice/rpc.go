@@ -13,6 +13,8 @@ import (
 	"github.com/osamingo/jsonrpc"
 	"github.com/skycoin/skycoin/src/visor"
 	"github.com/skycoin/skycoin/src/wallet"
+	"github.com/spaco/spo/src/cipher"
+	"github.com/spaco/spo/src/gui"
 )
 
 type (
@@ -36,28 +38,159 @@ type (
 		Addrs string `json:"addrs"`
 	}
 
+	WalletCreateRequest struct {
+		Seed     string `json:"seed"`
+		Lable    string `json:"label"`
+		Scan     int    `json:"scan"`
+		Password string `json:"password"`
+	}
+
+	AddressNewRequest struct {
+		ID       string `json:"ID"`
+		Num      int    `json:"num"`
+		Password string `json:"password"`
+	}
+
+	WalletSpentRequest struct {
+		ID       string `json:"ID"`
+		Dst      string `json:"dst"`
+		Coins    uint64 `json:"coins"`
+		Password string `json:"password"`
+	}
+
+	EncryptWalletRequest struct {
+		ID       string `json:"ID"`
+		Password string `json:"password"`
+	}
+
+	BlockRequest struct {
+		Seq  uint64 `json:"seq"`
+		Hash string `json:"hash"`
+	}
+	BlockLastNRequest struct {
+		Num uint64 `json:"num"`
+	}
+
+	BlockRangeRequest struct {
+		Start uint64 `json:"start"`
+		End   uint64 `json:"end"`
+	}
+
+	TransactionRequest struct {
+		Txid string `json:"txid"`
+	}
+
 	WalletBalanceHandler struct{}
 	BalanceHandler       struct{}
 
-	WalletHandler struct{}
+	WalletHandler       struct{}
+	WalletCreateHandler struct{}
+	WalletSpentHandler  struct{}
+
+	AddressNewHandler struct{}
+
+	EncryptWalletHandler struct{}
+	DecryptWalletHandler struct{}
+
+	BlockHandler      struct{}
+	BlockRangeHandler struct{}
+	BlockLastNHandler struct{}
+
+	TransactionHandler struct{}
 )
 
-func (h WalletHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessage) (interface{}, *jsonrpc.Error) {
-	var req BalanceRequest
+func (h AddressNewHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessage) (interface{}, *jsonrpc.Error) {
+	var req AddressNewRequest
 	if err := jsonrpc.Unmarshal(params, &req); err != nil {
 		return nil, ErrCustomise(err)
 	}
-	if req.Addrs == "" {
+	if req.ID == "" || req.Password == "" {
 		return nil, jsonrpc.ErrInvalidParams()
 	}
 
-	url := fmt.Sprintf("http://127.0.0.1:6420/balance?addrs=%s", req.Addrs)
+	url := "http://127.0.0.1:6420/wallet/newAddress"
+	fmt.Printf("url %s\n", url)
+	reqBody, err := json.Marshal(req)
+	if err != nil {
+		return nil, ErrCustomise(err)
+	}
+	byteBody, err := SendRequest("POST", url, reqBody)
+	if err != nil {
+		return nil, ErrCustomise(err)
+	}
+	output := []cipher.Address{}
+	if err := json.Unmarshal(byteBody, &output); err != nil {
+		return nil, ErrCustomise(err)
+	}
+	return output, nil
+}
+func (h WalletSpentHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessage) (interface{}, *jsonrpc.Error) {
+	var req WalletSpentRequest
+	if err := jsonrpc.Unmarshal(params, &req); err != nil {
+		return nil, ErrCustomise(err)
+	}
+	if req.ID == "" || req.Dst == "" {
+		return nil, jsonrpc.ErrInvalidParams()
+	}
+
+	url := "http://127.0.0.1:6420/wallet/spend"
+	fmt.Printf("url %s\n", url)
+	reqBody, err := json.Marshal(req)
+	if err != nil {
+		return nil, ErrCustomise(err)
+	}
+	byteBody, err := SendRequest("POST", url, reqBody)
+	if err != nil {
+		return nil, ErrCustomise(err)
+	}
+	output := &gui.SpendResult{}
+	if err := json.Unmarshal(byteBody, &output); err != nil {
+		return nil, ErrCustomise(err)
+	}
+	return output, nil
+}
+
+func (h WalletCreateHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessage) (interface{}, *jsonrpc.Error) {
+	var req WalletCreateRequest
+	if err := jsonrpc.Unmarshal(params, &req); err != nil {
+		return nil, ErrCustomise(err)
+	}
+	if req.Seed == "" || req.Lable == "" {
+		return nil, jsonrpc.ErrInvalidParams()
+	}
+
+	url := "http://127.0.0.1:6420/wallet/create"
+	fmt.Printf("url %s\n", url)
+	reqBody, err := json.Marshal(req)
+	if err != nil {
+		return nil, ErrCustomise(err)
+	}
+	byteBody, err := SendRequest("POST", url, reqBody)
+	if err != nil {
+		return nil, ErrCustomise(err)
+	}
+	output := &wallet.Wallet{}
+	if err := json.Unmarshal(byteBody, &output); err != nil {
+		return nil, ErrCustomise(err)
+	}
+	return output, nil
+}
+func (h WalletHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessage) (interface{}, *jsonrpc.Error) {
+	var req OnlyIDRequest
+	if err := jsonrpc.Unmarshal(params, &req); err != nil {
+		return nil, ErrCustomise(err)
+	}
+	if req.ID == "" {
+		return nil, jsonrpc.ErrInvalidParams()
+	}
+
+	url := fmt.Sprintf("http://127.0.0.1:6420/wallet?id=%s", req.ID)
 	fmt.Printf("url %s\n", url)
 	byteBody, err := SendRequest("GET", url, nil)
 	if err != nil {
 		return nil, ErrCustomise(err)
 	}
-	output := wallet.BalancePair{}
+	output := &wallet.Wallet{}
 	if err := json.Unmarshal(byteBody, &output); err != nil {
 		return nil, ErrCustomise(err)
 	}
@@ -152,28 +285,6 @@ func (h VersionHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMess
 	return bi, nil
 }
 
-func RegisterMethod() *jsonrpc.MethodRepository {
-
-	mr := jsonrpc.NewMethodRepository()
-
-	if err := mr.RegisterMethod("version", VersionHandler{}, struct{}{}, visor.BuildInfo{}); err != nil {
-		log.Fatalln(err)
-	}
-	if err := mr.RegisterMethod("outputs", OutputsHandler{}, OutputsRequest{}, visor.ReadableOutputSet{}); err != nil {
-		log.Fatalln(err)
-	}
-	if err := mr.RegisterMethod("walletBalance", WalletBalanceHandler{}, new(string), wallet.BalancePair{}); err != nil {
-		log.Fatalln(err)
-	}
-
-	if err := mr.RegisterMethod("balance", BalanceHandler{}, BalanceRequest{}, wallet.BalancePair{}); err != nil {
-		log.Fatalln(err)
-	}
-
-	return mr
-
-}
-
 func SendRequest(method, url string, reqBody []byte) ([]byte, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest(method, url, bytes.NewReader(reqBody))
@@ -199,4 +310,52 @@ func ErrCustomise(err error) *jsonrpc.Error {
 		Code:    jsonrpc.ErrorCodeInternal,
 		Message: err.Error(),
 	}
+}
+
+func RegisterMethod() *jsonrpc.MethodRepository {
+
+	mr := jsonrpc.NewMethodRepository()
+
+	if err := mr.RegisterMethod("version", VersionHandler{}, struct{}{}, visor.BuildInfo{}); err != nil {
+		log.Fatalln(err)
+	}
+	if err := mr.RegisterMethod("outputs", OutputsHandler{}, OutputsRequest{}, visor.ReadableOutputSet{}); err != nil {
+		log.Fatalln(err)
+	}
+	if err := mr.RegisterMethod("walletBalance", WalletBalanceHandler{}, OnlyIDRequest{}, wallet.BalancePair{}); err != nil {
+		log.Fatalln(err)
+	}
+
+	if err := mr.RegisterMethod("balance", BalanceHandler{}, BalanceRequest{}, wallet.BalancePair{}); err != nil {
+		log.Fatalln(err)
+	}
+
+	if err := mr.RegisterMethod("wallet", WalletHandler{}, OnlyIDRequest{}, wallet.Wallet{}); err != nil {
+		log.Fatalln(err)
+	}
+
+	if err := mr.RegisterMethod("walletCreate", WalletCreateHandler{}, WalletCreateRequest{}, wallet.Wallet{}); err != nil {
+		log.Fatalln(err)
+	}
+
+	if err := mr.RegisterMethod("walletSpent", WalletSpentHandler{}, WalletSpentRequest{}, gui.SpendResult{}); err != nil {
+		log.Fatalln(err)
+	}
+
+	if err := mr.RegisterMethod("addressNew", AddressNewHandler{}, AddressNewRequest{}, []cipher.Address{}); err != nil {
+		log.Fatalln(err)
+	}
+
+	if err := mr.RegisterMethod("encryptWallet", EncryptWalletHandler{}, EncryptWalletRequest{}, wallet.Wallet{}); err != nil {
+		log.Fatalln(err)
+	}
+	if err := mr.RegisterMethod("decryptWallet", DecryptWalletHandler{}, EncryptWalletRequest{}, wallet.Wallet{}); err != nil {
+		log.Fatalln(err)
+	}
+	if err := mr.RegisterMethod("block", BlockHandler{}, BlockRequest{}, wallet.Wallet{}); err != nil {
+		log.Fatalln(err)
+	}
+
+	return mr
+
 }
