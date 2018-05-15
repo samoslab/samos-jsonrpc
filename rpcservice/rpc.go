@@ -30,28 +30,9 @@ type (
 		Hashes string `json:"hashes"`
 	}
 
-	WalletCreateRequest struct {
-		Seed     string `json:"seed"`
-		Lable    string `json:"label"`
-		Scan     int    `json:"scan"`
-		Password string `json:"password"`
-	}
-
 	AddressNewRequest struct {
 		ID       string `json:"ID"`
 		Num      int    `json:"num"`
-		Password string `json:"password"`
-	}
-
-	WalletSpentRequest struct {
-		ID       string `json:"ID"`
-		Dst      string `json:"dst"`
-		Coins    uint64 `json:"coins"`
-		Password string `json:"password"`
-	}
-
-	EncryptWalletRequest struct {
-		ID       string `json:"ID"`
 		Password string `json:"password"`
 	}
 
@@ -72,14 +53,7 @@ type (
 		Txid string `json:"txid"`
 	}
 
-	WalletHandler       struct{}
-	WalletCreateHandler struct{}
-	WalletSpentHandler  struct{}
-
 	AddressNewHandler struct{}
-
-	EncryptWalletHandler struct{}
-	DecryptWalletHandler struct{}
 
 	BlockHandler      struct{}
 	BlockRangeHandler struct{}
@@ -108,78 +82,6 @@ func (h AddressNewHandler) ServeJSONRPC(c context.Context, params *fastjson.RawM
 		return nil, ErrCustomise(err)
 	}
 	output := []cipher.Address{}
-	if err := json.Unmarshal(byteBody, &output); err != nil {
-		return nil, ErrCustomise(err)
-	}
-	return output, nil
-}
-func (h WalletSpentHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessage) (interface{}, *jsonrpc.Error) {
-	var req WalletSpentRequest
-	if err := jsonrpc.Unmarshal(params, &req); err != nil {
-		return nil, ErrCustomise(err)
-	}
-	if req.ID == "" || req.Dst == "" {
-		return nil, jsonrpc.ErrInvalidParams()
-	}
-
-	url := "http://127.0.0.1:6420/wallet/spend"
-	fmt.Printf("url %s\n", url)
-	reqBody, err := json.Marshal(req)
-	if err != nil {
-		return nil, ErrCustomise(err)
-	}
-	byteBody, err := SendRequest("POST", url, reqBody)
-	if err != nil {
-		return nil, ErrCustomise(err)
-	}
-	output := &gui.SpendResult{}
-	if err := json.Unmarshal(byteBody, &output); err != nil {
-		return nil, ErrCustomise(err)
-	}
-	return output, nil
-}
-
-func (h WalletCreateHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessage) (interface{}, *jsonrpc.Error) {
-	var req WalletCreateRequest
-	if err := jsonrpc.Unmarshal(params, &req); err != nil {
-		return nil, ErrCustomise(err)
-	}
-	if req.Seed == "" || req.Lable == "" {
-		return nil, jsonrpc.ErrInvalidParams()
-	}
-
-	url := "http://127.0.0.1:6420/wallet/create"
-	fmt.Printf("url %s\n", url)
-	reqBody, err := json.Marshal(req)
-	if err != nil {
-		return nil, ErrCustomise(err)
-	}
-	byteBody, err := SendRequest("POST", url, reqBody)
-	if err != nil {
-		return nil, ErrCustomise(err)
-	}
-	output := &wallet.Wallet{}
-	if err := json.Unmarshal(byteBody, &output); err != nil {
-		return nil, ErrCustomise(err)
-	}
-	return output, nil
-}
-func (h WalletHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessage) (interface{}, *jsonrpc.Error) {
-	var req OnlyIDRequest
-	if err := jsonrpc.Unmarshal(params, &req); err != nil {
-		return nil, ErrCustomise(err)
-	}
-	if req.ID == "" {
-		return nil, jsonrpc.ErrInvalidParams()
-	}
-
-	url := fmt.Sprintf("http://127.0.0.1:6420/wallet?id=%s", req.ID)
-	fmt.Printf("url %s\n", url)
-	byteBody, err := SendRequest("GET", url, nil)
-	if err != nil {
-		return nil, ErrCustomise(err)
-	}
-	output := &wallet.Wallet{}
 	if err := json.Unmarshal(byteBody, &output); err != nil {
 		return nil, ErrCustomise(err)
 	}

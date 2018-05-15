@@ -59,6 +59,11 @@ func NewHandlers() []HandleParamsResulter {
 		EchoHandler{},
 		rpcservice.BalanceHandler{},
 		rpcservice.WalletBalanceHandler{},
+		rpcservice.WalletSpentHandler{},
+		rpcservice.WalletCreateHandler{},
+		rpcservice.WalletHandler{},
+		rpcservice.WalletEncryptHandler{},
+		rpcservice.WalletDecryptHandler{},
 	}
 }
 
