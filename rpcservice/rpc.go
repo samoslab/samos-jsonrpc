@@ -1,13 +1,10 @@
 package rpcservice
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
 
 	"github.com/intel-go/fastjson"
 	"github.com/osamingo/jsonrpc"
@@ -36,31 +33,20 @@ type (
 		Password string `json:"password"`
 	}
 
-	BlockRequest struct {
-		Seq  uint64 `json:"seq"`
-		Hash string `json:"hash"`
-	}
-	BlockLastNRequest struct {
-		Num uint64 `json:"num"`
-	}
-
-	BlockRangeRequest struct {
-		Start uint64 `json:"start"`
-		End   uint64 `json:"end"`
-	}
-
-	TransactionRequest struct {
-		Txid string `json:"txid"`
-	}
-
 	AddressNewHandler struct{}
-
-	BlockHandler      struct{}
-	BlockRangeHandler struct{}
-	BlockLastNHandler struct{}
-
-	TransactionHandler struct{}
 )
+
+func (h AddressNewHandler) Name() string {
+	return "addressNew"
+}
+
+func (h AddressNewHandler) Params() interface{} {
+	return AddressNewRequest{}
+}
+
+func (h AddressNewHandler) Result() interface{} {
+	return []cipher.Address{}
+}
 
 func (h AddressNewHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessage) (interface{}, *jsonrpc.Error) {
 	var req AddressNewRequest
@@ -88,6 +74,17 @@ func (h AddressNewHandler) ServeJSONRPC(c context.Context, params *fastjson.RawM
 	return output, nil
 }
 
+func (h OutputsHandler) Name() string {
+	return "outputs"
+}
+
+func (h OutputsHandler) Params() interface{} {
+	return OutputsRequest{}
+}
+
+func (h OutputsHandler) Result() interface{} {
+	return visor.ReadableOutputSet{}
+}
 func (h OutputsHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessage) (interface{}, *jsonrpc.Error) {
 	req := &OutputsRequest{}
 	if err := jsonrpc.Unmarshal(params, req); err != nil {
@@ -113,7 +110,18 @@ func (h OutputsHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMess
 		return nil, ErrCustomise(err)
 	}
 	return output, nil
+}
 
+func (h VersionHandler) Name() string {
+	return "version"
+}
+
+func (h VersionHandler) Params() interface{} {
+	return struct{}{}
+}
+
+func (h VersionHandler) Result() interface{} {
+	return visor.BuildInfo{}
 }
 
 func (h VersionHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessage) (interface{}, *jsonrpc.Error) {
@@ -129,33 +137,6 @@ func (h VersionHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMess
 	}
 
 	return bi, nil
-}
-
-func SendRequest(method, url string, reqBody []byte) ([]byte, error) {
-	client := &http.Client{}
-	req, err := http.NewRequest(method, url, bytes.NewReader(reqBody))
-	if err != nil {
-		return nil, err
-	}
-
-	rsp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-	byteBody, err := ioutil.ReadAll(rsp.Body)
-	if err != nil {
-		return nil, err
-	}
-	return byteBody, nil
-}
-
-// ErrCustomise returns invalid error by error.
-func ErrCustomise(err error) *jsonrpc.Error {
-	return &jsonrpc.Error{
-		Code:    jsonrpc.ErrorCodeInternal,
-		Message: err.Error(),
-	}
 }
 
 func RegisterMethod() *jsonrpc.MethodRepository {
