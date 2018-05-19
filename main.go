@@ -69,6 +69,9 @@ func NewHandlers() []HandleParamsResulter {
 		rpcservice.AddressNewHandler{},
 		rpcservice.OutputsHandler{},
 		rpcservice.BlockHandler{},
+		rpcservice.BlockRangeHandler{},
+		rpcservice.BlockLastNHandler{},
+		rpcservice.TransactionHandler{},
 	}
 }
 
