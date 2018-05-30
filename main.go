@@ -8,7 +8,7 @@ import (
 
 	"github.com/intel-go/fastjson"
 	"github.com/osamingo/jsonrpc"
-	"github.com/samoslab/skyjsonrpc/rpcservice"
+	"github.com/samoslab/sky-fiber-jsonrpc/rpcservice"
 )
 
 type (

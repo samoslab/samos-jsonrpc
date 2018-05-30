@@ -8,10 +8,10 @@ import (
 
 	"github.com/intel-go/fastjson"
 	"github.com/osamingo/jsonrpc"
+	"github.com/skycoin/skycoin/src/cipher"
+	"github.com/skycoin/skycoin/src/gui"
 	"github.com/skycoin/skycoin/src/visor"
 	"github.com/skycoin/skycoin/src/wallet"
-	"github.com/spaco/spo/src/cipher"
-	"github.com/spaco/spo/src/gui"
 )
 
 type (
