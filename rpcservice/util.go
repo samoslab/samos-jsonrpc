@@ -15,6 +15,7 @@ func SendRequest(method, url string, reqBody []byte) ([]byte, error) {
 		return nil, err
 	}
 
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rsp, err := client.Do(req)
 	if err != nil {
 		return nil, err

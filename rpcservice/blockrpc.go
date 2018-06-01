@@ -24,9 +24,15 @@ type (
 		End   string `json:"end"`
 	}
 
-	BlockHandler      struct{}
-	BlockRangeHandler struct{}
-	BlockLastNHandler struct{}
+	BlockHandler struct {
+		BackendServer string
+	}
+	BlockRangeHandler struct {
+		BackendServer string
+	}
+	BlockLastNHandler struct {
+		BackendServer string
+	}
 )
 
 func (h BlockHandler) Name() string {
@@ -47,11 +53,11 @@ func (h BlockHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessag
 		return nil, ErrCustomise(err)
 	}
 
-	if req.Hash == "" {
+	if req.Hash == "" && req.Seq == "" {
 		return nil, jsonrpc.ErrInvalidParams()
 	}
 
-	url := "http://127.0.0.1:6420/block"
+	url := fmt.Sprintf("%s/block", h.BackendServer)
 	if req.Hash != "" {
 		url = fmt.Sprintf("%s?hash=%s", url, req.Hash)
 	} else if req.Seq != "" {
@@ -91,7 +97,7 @@ func (h BlockRangeHandler) ServeJSONRPC(c context.Context, params *fastjson.RawM
 		return nil, jsonrpc.ErrInvalidParams()
 	}
 
-	url := fmt.Sprintf("http://127.0.0.1:6420/blocks?start=%s&end=%s", req.Start, req.End)
+	url := fmt.Sprintf("%s/blocks?start=%s&end=%s", h.BackendServer, req.Start, req.End)
 	fmt.Printf("url %s\n", url)
 	byteBody, err := SendRequest("GET", url, nil)
 	if err != nil {
@@ -126,7 +132,7 @@ func (h BlockLastNHandler) ServeJSONRPC(c context.Context, params *fastjson.RawM
 		return nil, jsonrpc.ErrInvalidParams()
 	}
 
-	url := fmt.Sprintf("http://127.0.0.1:6420/last_blocks?num=%s", req.Num)
+	url := fmt.Sprintf("%s/last_blocks?num=%s", h.BackendServer, req.Num)
 	fmt.Printf("url %s\n", url)
 	byteBody, err := SendRequest("GET", url, nil)
 	if err != nil {

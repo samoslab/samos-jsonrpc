@@ -14,7 +14,9 @@ type (
 	TransactionRequest struct {
 		Txid string `json:"txid"`
 	}
-	TransactionHandler struct{}
+	TransactionHandler struct {
+		BackendServer string
+	}
 )
 
 func (h TransactionHandler) Name() string {
@@ -26,7 +28,7 @@ func (h TransactionHandler) Params() interface{} {
 }
 
 func (h TransactionHandler) Result() interface{} {
-	return visor.Transaction{}
+	return visor.TransactionResult{}
 }
 
 func (h TransactionHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessage) (interface{}, *jsonrpc.Error) {
@@ -39,13 +41,13 @@ func (h TransactionHandler) ServeJSONRPC(c context.Context, params *fastjson.Raw
 		return nil, jsonrpc.ErrInvalidParams()
 	}
 
-	url := fmt.Sprintf("http://127.0.0.1:6420/transaction?txid=%s", req.Txid)
+	url := fmt.Sprintf("%s/transaction?txid=%s", h.BackendServer, req.Txid)
 	fmt.Printf("url %s\n", url)
 	byteBody, err := SendRequest("GET", url, nil)
 	if err != nil {
 		return nil, ErrCustomise(err)
 	}
-	output := visor.Transaction{}
+	output := visor.TransactionResult{}
 	if err := json.Unmarshal(byteBody, &output); err != nil {
 		return nil, ErrCustomise(err)
 	}

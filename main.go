@@ -1,12 +1,11 @@
 package main
 
 import (
-	"context"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
 
-	"github.com/intel-go/fastjson"
 	"github.com/osamingo/jsonrpc"
 	"github.com/samoslab/sky-fiber-jsonrpc/rpcservice"
 )
@@ -20,66 +19,38 @@ type (
 	}
 )
 
-type (
-	EchoHandler struct{}
-	EchoParams  struct {
-		Name string `json:"name"`
-	}
-	EchoResult struct {
-		Message string `json:"message"`
-	}
-)
-
-func (h EchoHandler) Name() string {
-	return "Echo"
-}
-
-func (h EchoHandler) Params() interface{} {
-	return EchoParams{}
-}
-
-func (h EchoHandler) Result() interface{} {
-	return EchoResult{}
-}
-
-func (h EchoHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessage) (interface{}, *jsonrpc.Error) {
-
-	var p EchoParams
-	if err := jsonrpc.Unmarshal(params, &p); err != nil {
-		return nil, err
-	}
-
-	return EchoResult{
-		Message: "Hello, " + p.Name,
-	}, nil
-}
-
-func NewHandlers() []HandleParamsResulter {
+func NewHandlers(NodeRpcAddress string) []HandleParamsResulter {
 	return []HandleParamsResulter{
-		EchoHandler{},
-		rpcservice.BalanceHandler{},
-		rpcservice.WalletBalanceHandler{},
-		rpcservice.WalletSpentHandler{},
-		rpcservice.WalletCreateHandler{},
-		rpcservice.WalletHandler{},
-		rpcservice.WalletEncryptHandler{},
-		rpcservice.WalletDecryptHandler{},
+		rpcservice.BalanceHandler{NodeRpcAddress},
+		rpcservice.WalletBalanceHandler{NodeRpcAddress},
+		rpcservice.WalletSpentHandler{NodeRpcAddress},
+		rpcservice.WalletCreateHandler{NodeRpcAddress},
+		rpcservice.WalletHandler{NodeRpcAddress},
+		rpcservice.WalletEncryptHandler{NodeRpcAddress},
+		rpcservice.WalletDecryptHandler{NodeRpcAddress},
 
-		rpcservice.VersionHandler{},
-		rpcservice.AddressNewHandler{},
-		rpcservice.OutputsHandler{},
-		rpcservice.BlockHandler{},
-		rpcservice.BlockRangeHandler{},
-		rpcservice.BlockLastNHandler{},
-		rpcservice.TransactionHandler{},
+		rpcservice.VersionHandler{NodeRpcAddress},
+		rpcservice.AddressNewHandler{NodeRpcAddress},
+		rpcservice.OutputsHandler{NodeRpcAddress},
+		rpcservice.BlockHandler{NodeRpcAddress},
+		rpcservice.BlockRangeHandler{NodeRpcAddress},
+		rpcservice.BlockLastNHandler{NodeRpcAddress},
+		rpcservice.TransactionHandler{NodeRpcAddress},
 	}
 }
 
 func main() {
 
+	var NodeRpcAddress string
+	var ListenAddr string
+	flag.StringVar(&NodeRpcAddress, "backend", "http://127.0.0.1:16420", "backend server web interface addr")
+	flag.StringVar(&ListenAddr, "port", "127.0.0.1:8081", "listen port")
+	flag.Parse()
+	fmt.Printf("backend addr %s\n", NodeRpcAddress)
+	fmt.Printf("listen addr %s\n", ListenAddr)
 	mr := jsonrpc.NewMethodRepository()
 
-	for _, h := range NewHandlers() {
+	for _, h := range NewHandlers(NodeRpcAddress) {
 		fmt.Printf("%s\n", h.Name())
 		mr.RegisterMethod(h.Name(), h, h.Params(), h.Result())
 	}
@@ -87,7 +58,7 @@ func main() {
 	http.Handle("/jrpc", mr)
 	http.HandleFunc("/jrpc/debug", mr.ServeDebug)
 
-	if err := http.ListenAndServe(":8080", http.DefaultServeMux); err != nil {
+	if err := http.ListenAndServe(ListenAddr, http.DefaultServeMux); err != nil {
 		log.Fatalln(err)
 	}
 }
