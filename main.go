@@ -36,6 +36,8 @@ func NewHandlers(NodeRpcAddress string) []HandleParamsResulter {
 		rpcservice.BlockRangeHandler{NodeRpcAddress},
 		rpcservice.BlockLastNHandler{NodeRpcAddress},
 		rpcservice.TransactionHandler{NodeRpcAddress},
+		rpcservice.CreateTransactionHandler{NodeRpcAddress},
+		rpcservice.InjectTransactionHandler{NodeRpcAddress},
 	}
 }
 
@@ -43,7 +45,7 @@ func main() {
 
 	var NodeRpcAddress string
 	var ListenAddr string
-	flag.StringVar(&NodeRpcAddress, "backend", "http://127.0.0.1:16420", "backend server web interface addr")
+	flag.StringVar(&NodeRpcAddress, "backend", "http://127.0.0.1:8640", "backend server web interface addr")
 	flag.StringVar(&ListenAddr, "port", "127.0.0.1:8081", "listen port")
 	flag.Parse()
 	fmt.Printf("backend addr %s\n", NodeRpcAddress)
