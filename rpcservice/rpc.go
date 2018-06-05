@@ -2,11 +2,10 @@ package rpcservice
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 
 	"github.com/intel-go/fastjson"
 	"github.com/osamingo/jsonrpc"
+	"github.com/samoslab/samos/src/gui"
 	"github.com/skycoin/skycoin/src/visor"
 )
 
@@ -16,27 +15,31 @@ type (
 	}
 	StatusHandler struct {
 		BackendServer string
+		Client        *gui.Client
 	}
 	VersionHandler struct {
 		BackendServer string
+		Client        *gui.Client
 	}
 	OutputsHandler struct {
 		BackendServer string
+		Client        *gui.Client
 	}
 
 	OutputsRequest struct {
-		Addrs  string `json:"addrs"`
-		Hashes string `json:"hashes"`
+		Addrs  []string `json:"addrs"`
+		Hashes []string `json:"hashes"`
 	}
 
 	AddressNewRequest struct {
 		ID       string `json:"id"`
-		Num      string `json:"num"`
+		Num      int    `json:"num"`
 		Password string `json:"password"`
 	}
 
 	AddressNewHandler struct {
 		BackendServer string
+		Client        *gui.Client
 	}
 )
 
@@ -61,19 +64,13 @@ func (h AddressNewHandler) ServeJSONRPC(c context.Context, params *fastjson.RawM
 	if err := jsonrpc.Unmarshal(params, &req); err != nil {
 		return nil, ErrCustomise(err)
 	}
+
 	if req.ID == "" {
 		return nil, jsonrpc.ErrInvalidParams()
 	}
 
-	url := fmt.Sprintf("%s/wallet/newAddress", h.BackendServer)
-	fmt.Printf("url %s\n", url)
-	reqBody := fmt.Sprintf("id=%s&num=%s&password=%s", req.ID, req.Num, req.Password)
-	byteBody, err := SendRequest("POST", url, []byte(reqBody))
+	output, err := h.Client.NewWalletAddress(req.ID, req.Num, req.Password)
 	if err != nil {
-		return nil, ErrCustomise(err)
-	}
-	output := AddrNewResult{}
-	if err := json.Unmarshal(byteBody, &output); err != nil {
 		return nil, ErrCustomise(err)
 	}
 	return output, nil
@@ -96,22 +93,20 @@ func (h OutputsHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMess
 		return nil, ErrCustomise(err)
 	}
 
-	if req.Addrs != "" && req.Hashes != "" {
+	if len(req.Addrs) == 0 && len(req.Hashes) == 0 {
 		return nil, jsonrpc.ErrInvalidParams()
 	}
 
-	url := fmt.Sprintf("%s/outputs", h.BackendServer)
-	if req.Addrs != "" {
-		url = fmt.Sprintf("%s?addrs=%s", url, req.Addrs)
-	} else if req.Hashes != "" {
-		url = fmt.Sprintf("%s?hashes=%s", url, req.Hashes)
+	if len(req.Addrs) != 0 {
+		output, err := h.Client.OutputsForAddresses(req.Addrs)
+		if err != nil {
+			return nil, ErrCustomise(err)
+		}
+		return output, nil
 	}
-	byteBody, err := SendRequest("GET", url, nil)
+
+	output, err := h.Client.OutputsForHashes(req.Hashes)
 	if err != nil {
-		return nil, ErrCustomise(err)
-	}
-	output := visor.ReadableOutputSet{}
-	if err := json.Unmarshal(byteBody, &output); err != nil {
 		return nil, ErrCustomise(err)
 	}
 	return output, nil
@@ -130,16 +125,10 @@ func (h VersionHandler) Result() interface{} {
 }
 
 func (h VersionHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessage) (interface{}, *jsonrpc.Error) {
-	url := fmt.Sprintf("%s/version", h.BackendServer)
-	byteBody, err := SendRequest("GET", url, nil)
+	output, err := h.Client.Version()
 	if err != nil {
 		return nil, ErrCustomise(err)
 	}
 
-	bi := visor.BuildInfo{}
-	if err := json.Unmarshal(byteBody, &bi); err != nil {
-		return nil, ErrCustomise(err)
-	}
-
-	return bi, nil
+	return output, nil
 }

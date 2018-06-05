@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/osamingo/jsonrpc"
+	"github.com/samoslab/samos/src/gui"
 	"github.com/samoslab/sky-fiber-jsonrpc/rpcservice"
 )
 
@@ -19,40 +20,45 @@ type (
 	}
 )
 
-func NewHandlers(NodeRpcAddress string) []HandleParamsResulter {
+func NewHandlers(client *gui.Client) []HandleParamsResulter {
 	return []HandleParamsResulter{
-		rpcservice.BalanceHandler{NodeRpcAddress},
-		rpcservice.WalletBalanceHandler{NodeRpcAddress},
-		rpcservice.WalletSpentHandler{NodeRpcAddress},
-		rpcservice.WalletCreateHandler{NodeRpcAddress},
-		rpcservice.WalletHandler{NodeRpcAddress},
-		rpcservice.WalletEncryptHandler{NodeRpcAddress},
-		rpcservice.WalletDecryptHandler{NodeRpcAddress},
+		rpcservice.BalanceHandler{Client: client},
+		rpcservice.WalletBalanceHandler{Client: client},
+		rpcservice.WalletSpentHandler{Client: client},
+		rpcservice.WalletCreateHandler{Client: client},
+		rpcservice.WalletHandler{Client: client},
+		rpcservice.WalletEncryptHandler{Client: client},
+		rpcservice.WalletDecryptHandler{Client: client},
 
-		rpcservice.VersionHandler{NodeRpcAddress},
-		rpcservice.AddressNewHandler{NodeRpcAddress},
-		rpcservice.OutputsHandler{NodeRpcAddress},
-		rpcservice.BlockHandler{NodeRpcAddress},
-		rpcservice.BlockRangeHandler{NodeRpcAddress},
-		rpcservice.BlockLastNHandler{NodeRpcAddress},
-		rpcservice.TransactionHandler{NodeRpcAddress},
-		rpcservice.CreateTransactionHandler{NodeRpcAddress},
-		rpcservice.InjectTransactionHandler{NodeRpcAddress},
+		rpcservice.VersionHandler{Client: client},
+		rpcservice.AddressNewHandler{Client: client},
+		rpcservice.OutputsHandler{Client: client},
+		rpcservice.BlockHandler{Client: client},
+		rpcservice.BlockRangeHandler{Client: client},
+		rpcservice.BlockLastNHandler{Client: client},
+		rpcservice.TransactionHandler{Client: client},
+		rpcservice.CreateTransactionHandler{Client: client},
+		rpcservice.InjectTransactionHandler{Client: client},
 	}
 }
 
 func main() {
 
-	var NodeRpcAddress string
+	var nodeRpcAddress string
 	var ListenAddr string
-	flag.StringVar(&NodeRpcAddress, "backend", "http://127.0.0.1:8640", "backend server web interface addr")
+	flag.StringVar(&nodeRpcAddress, "backend", "http://127.0.0.1:8640", "backend server web interface addr")
 	flag.StringVar(&ListenAddr, "port", "127.0.0.1:8081", "listen port")
 	flag.Parse()
-	fmt.Printf("backend addr %s\n", NodeRpcAddress)
+	fmt.Printf("backend addr %s\n", nodeRpcAddress)
 	fmt.Printf("listen addr %s\n", ListenAddr)
 	mr := jsonrpc.NewMethodRepository()
 
-	for _, h := range NewHandlers(NodeRpcAddress) {
+	client := gui.NewClient(nodeRpcAddress)
+	if client == nil {
+		fmt.Printf("connect to samos service failed")
+		return
+	}
+	for _, h := range NewHandlers(client) {
 		fmt.Printf("%s\n", h.Name())
 		mr.RegisterMethod(h.Name(), h, h.Params(), h.Result())
 	}

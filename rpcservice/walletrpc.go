@@ -2,7 +2,6 @@ package rpcservice
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/intel-go/fastjson"
@@ -16,20 +15,20 @@ type (
 		ID string `json:"id"`
 	}
 	BalanceRequest struct {
-		Addrs string `json:"addrs"`
+		Addrs []string `json:"addrs"`
 	}
 
 	WalletCreateRequest struct {
 		Seed     string `json:"seed"`
 		Label    string `json:"label"`
-		Scan     string `json:"scan"`
+		Scan     int    `json:"scan"`
 		Password string `json:"password"`
 	}
 
 	WalletSpentRequest struct {
 		ID       string `json:"ID"`
 		Dst      string `json:"dst"`
-		Coins    string `json:"coins"`
+		Coins    uint64 `json:"coins"`
 		Password string `json:"password"`
 	}
 
@@ -39,26 +38,33 @@ type (
 	}
 	BalanceHandler struct {
 		BackendServer string
+		Client        *gui.Client
 	}
 	WalletBalanceHandler struct {
 		BackendServer string
+		Client        *gui.Client
 	}
 
 	WalletHandler struct {
 		BackendServer string
+		Client        *gui.Client
 	}
 	WalletCreateHandler struct {
 		BackendServer string
+		Client        *gui.Client
 	}
 	WalletSpentHandler struct {
 		BackendServer string
+		Client        *gui.Client
 	}
 
 	WalletEncryptHandler struct {
 		BackendServer string
+		Client        *gui.Client
 	}
 	WalletDecryptHandler struct {
 		BackendServer string
+		Client        *gui.Client
 	}
 )
 
@@ -79,18 +85,12 @@ func (h BalanceHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMess
 	if err := jsonrpc.Unmarshal(params, &req); err != nil {
 		return nil, ErrCustomise(err)
 	}
-	if req.Addrs == "" {
+	if len(req.Addrs) == 0 {
 		return nil, jsonrpc.ErrInvalidParams()
 	}
 
-	url := fmt.Sprintf("%s/balance?addrs=%s", h.BackendServer, req.Addrs)
-	fmt.Printf("url %s\n", url)
-	byteBody, err := SendRequest("GET", url, nil)
+	output, err := h.Client.Balance(req.Addrs)
 	if err != nil {
-		return nil, ErrCustomise(err)
-	}
-	output := wallet.BalancePair{}
-	if err := json.Unmarshal(byteBody, &output); err != nil {
 		return nil, ErrCustomise(err)
 	}
 	return output, nil
@@ -118,14 +118,8 @@ func (h WalletBalanceHandler) ServeJSONRPC(c context.Context, params *fastjson.R
 		return nil, jsonrpc.ErrInvalidParams()
 	}
 
-	url := fmt.Sprintf("%s/wallet/balance?id=%s", h.BackendServer, req.ID)
-	fmt.Printf("url %s\n", url)
-	byteBody, err := SendRequest("GET", url, nil)
+	output, err := h.Client.WalletBalance(req.ID)
 	if err != nil {
-		return nil, ErrCustomise(err)
-	}
-	output := wallet.BalancePair{}
-	if err := json.Unmarshal(byteBody, &output); err != nil {
 		return nil, ErrCustomise(err)
 	}
 	return output, nil
@@ -152,18 +146,8 @@ func (h WalletSpentHandler) ServeJSONRPC(c context.Context, params *fastjson.Raw
 		return nil, jsonrpc.ErrInvalidParams()
 	}
 
-	url := fmt.Sprintf("%s/wallet/spend", h.BackendServer)
-	fmt.Printf("url %s\n", url)
-	reqBody := fmt.Sprintf("id=%s&dst=%s&coins=%s", req.ID, req.Dst, req.Coins)
-	if req.Password != "" {
-		reqBody = fmt.Sprintf("%s&password=%s", reqBody, req.Password)
-	}
-	byteBody, err := SendRequest("POST", url, []byte(reqBody))
+	output, err := h.Client.Spend(req.ID, req.Dst, req.Coins, req.Password)
 	if err != nil {
-		return nil, ErrCustomise(err)
-	}
-	output := &gui.SpendResult{}
-	if err := json.Unmarshal(byteBody, &output); err != nil {
 		return nil, ErrCustomise(err)
 	}
 	return output, nil
@@ -190,19 +174,8 @@ func (h WalletCreateHandler) ServeJSONRPC(c context.Context, params *fastjson.Ra
 		return nil, jsonrpc.ErrInvalidParams()
 	}
 
-	url := fmt.Sprintf("%s/wallet/create", h.BackendServer)
-	fmt.Printf("url %s\n", url)
-	reqBody := fmt.Sprintf("seed=%s&label=%s&scan=%s", req.Seed, req.Label, req.Scan)
-	if req.Password != "" {
-		reqBody = fmt.Sprintf("%s&password=%s", reqBody, req.Password)
-	}
-	byteBody, err := SendRequest("POST", url, []byte(reqBody))
+	output, err := h.Client.CreateEncryptedWallet(req.Seed, req.Label, req.Password, req.Scan)
 	if err != nil {
-		return nil, ErrCustomise(err)
-	}
-	fmt.Printf("end body %s\n", string(byteBody))
-	output := &gui.WalletResponse{}
-	if err := json.Unmarshal(byteBody, &output); err != nil {
 		return nil, ErrCustomise(err)
 	}
 	return output, nil
@@ -228,14 +201,8 @@ func (h WalletHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessa
 		return nil, jsonrpc.ErrInvalidParams()
 	}
 
-	url := fmt.Sprintf("%s/wallet?id=%s", h.BackendServer, req.ID)
-	fmt.Printf("url %s\n", url)
-	byteBody, err := SendRequest("GET", url, nil)
+	output, err := h.Client.Wallet(req.ID)
 	if err != nil {
-		return nil, ErrCustomise(err)
-	}
-	output := &wallet.Wallet{}
-	if err := json.Unmarshal(byteBody, &output); err != nil {
 		return nil, ErrCustomise(err)
 	}
 	return output, nil
@@ -260,19 +227,8 @@ func (h WalletEncryptHandler) ServeJSONRPC(c context.Context, params *fastjson.R
 	if req.ID == "" {
 		return nil, jsonrpc.ErrInvalidParams()
 	}
-
-	reqBody, err := json.Marshal(req)
+	output, err := h.Client.EncryptWallet(req.ID, req.Password)
 	if err != nil {
-		return nil, ErrCustomise(err)
-	}
-	url := fmt.Sprintf("%s/wallet/encrypt", h.BackendServer)
-	fmt.Printf("url %s\n", url)
-	byteBody, err := SendRequest("POST", url, reqBody)
-	if err != nil {
-		return nil, ErrCustomise(err)
-	}
-	output := &wallet.Wallet{}
-	if err := json.Unmarshal(byteBody, &output); err != nil {
 		return nil, ErrCustomise(err)
 	}
 	return output, nil
@@ -298,17 +254,8 @@ func (h WalletDecryptHandler) ServeJSONRPC(c context.Context, params *fastjson.R
 		return nil, jsonrpc.ErrInvalidParams()
 	}
 
-	reqBody, err := json.Marshal(req)
+	output, err := h.Client.DecryptWallet(req.ID, req.Password)
 	if err != nil {
-		return nil, ErrCustomise(err)
-	}
-	url := fmt.Sprintf("%s/wallet/decrypt", h.BackendServer)
-	byteBody, err := SendRequest("POST", url, reqBody)
-	if err != nil {
-		return nil, ErrCustomise(err)
-	}
-	output := &wallet.Wallet{}
-	if err := json.Unmarshal(byteBody, &output); err != nil {
 		return nil, ErrCustomise(err)
 	}
 	return output, nil

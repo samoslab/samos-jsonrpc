@@ -2,36 +2,39 @@ package rpcservice
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/intel-go/fastjson"
 	"github.com/osamingo/jsonrpc"
+	"github.com/samoslab/samos/src/gui"
 	"github.com/skycoin/skycoin/src/visor"
 )
 
 type (
 	BlockRequest struct {
-		Seq  string `json:"seq"`
+		Seq  uint64 `json:"seq"`
 		Hash string `json:"hash"`
 	}
 	BlockLastNRequest struct {
-		Num string `json:"num"`
+		Num int `json:"num"`
 	}
 
 	BlockRangeRequest struct {
-		Start string `json:"start"`
-		End   string `json:"end"`
+		Start int `json:"start"`
+		End   int `json:"end"`
 	}
 
 	BlockHandler struct {
 		BackendServer string
+		Client        *gui.Client
 	}
 	BlockRangeHandler struct {
 		BackendServer string
+		Client        *gui.Client
 	}
 	BlockLastNHandler struct {
 		BackendServer string
+		Client        *gui.Client
 	}
 )
 
@@ -53,23 +56,20 @@ func (h BlockHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessag
 		return nil, ErrCustomise(err)
 	}
 
-	if req.Hash == "" && req.Seq == "" {
+	if req.Hash == "" && req.Seq == 0 {
 		return nil, jsonrpc.ErrInvalidParams()
 	}
 
-	url := fmt.Sprintf("%s/block", h.BackendServer)
 	if req.Hash != "" {
-		url = fmt.Sprintf("%s?hash=%s", url, req.Hash)
-	} else if req.Seq != "" {
-		url = fmt.Sprintf("%s?seq=%s", url, req.Seq)
+		output, err := h.Client.BlockByHash(req.Hash)
+		if err != nil {
+			return nil, ErrCustomise(err)
+		}
+		return output, nil
 	}
-	fmt.Printf("url %s\n", url)
-	byteBody, err := SendRequest("GET", url, nil)
+
+	output, err := h.Client.BlockBySeq(req.Seq)
 	if err != nil {
-		return nil, ErrCustomise(err)
-	}
-	output := visor.ReadableBlock{}
-	if err := json.Unmarshal(byteBody, &output); err != nil {
 		return nil, ErrCustomise(err)
 	}
 	return output, nil
@@ -92,19 +92,14 @@ func (h BlockRangeHandler) ServeJSONRPC(c context.Context, params *fastjson.RawM
 	if err := jsonrpc.Unmarshal(params, &req); err != nil {
 		return nil, ErrCustomise(err)
 	}
+	fmt.Printf("req:%+v\n", req)
 
-	if req.Start == "" || req.End == "" {
+	if req.Start == 0 || req.End == 0 {
 		return nil, jsonrpc.ErrInvalidParams()
 	}
 
-	url := fmt.Sprintf("%s/blocks?start=%s&end=%s", h.BackendServer, req.Start, req.End)
-	fmt.Printf("url %s\n", url)
-	byteBody, err := SendRequest("GET", url, nil)
+	output, err := h.Client.Blocks(req.Start, req.End)
 	if err != nil {
-		return nil, ErrCustomise(err)
-	}
-	output := visor.ReadableBlocks{}
-	if err := json.Unmarshal(byteBody, &output); err != nil {
 		return nil, ErrCustomise(err)
 	}
 	return output, nil
@@ -128,18 +123,12 @@ func (h BlockLastNHandler) ServeJSONRPC(c context.Context, params *fastjson.RawM
 		return nil, ErrCustomise(err)
 	}
 
-	if req.Num == "" {
+	if req.Num == 0 {
 		return nil, jsonrpc.ErrInvalidParams()
 	}
 
-	url := fmt.Sprintf("%s/last_blocks?num=%s", h.BackendServer, req.Num)
-	fmt.Printf("url %s\n", url)
-	byteBody, err := SendRequest("GET", url, nil)
+	output, err := h.Client.LastBlocks(req.Num)
 	if err != nil {
-		return nil, ErrCustomise(err)
-	}
-	output := visor.ReadableBlocks{}
-	if err := json.Unmarshal(byteBody, &output); err != nil {
 		return nil, ErrCustomise(err)
 	}
 	return output, nil

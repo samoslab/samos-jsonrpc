@@ -2,7 +2,6 @@ package rpcservice
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/intel-go/fastjson"
@@ -17,10 +16,12 @@ type (
 	}
 	TransactionHandler struct {
 		BackendServer string
+		Client        *gui.Client
 	}
 
 	CreateTransactionHandler struct {
 		BackendServer string
+		Client        *gui.Client
 	}
 
 	InjectTransactionRequest struct {
@@ -30,8 +31,10 @@ type (
 	InjectResponse struct {
 		Txid string `json:"txid"`
 	}
+
 	InjectTransactionHandler struct {
 		BackendServer string
+		Client        *gui.Client
 	}
 )
 
@@ -57,14 +60,8 @@ func (h TransactionHandler) ServeJSONRPC(c context.Context, params *fastjson.Raw
 		return nil, jsonrpc.ErrInvalidParams()
 	}
 
-	url := fmt.Sprintf("%s/transaction?txid=%s", h.BackendServer, req.Txid)
-	fmt.Printf("url %s\n", url)
-	byteBody, err := SendRequest("GET", url, nil)
+	output, err := h.Client.Transaction(req.Txid)
 	if err != nil {
-		return nil, ErrCustomise(err)
-	}
-	output := visor.TransactionResult{}
-	if err := json.Unmarshal(byteBody, &output); err != nil {
 		return nil, ErrCustomise(err)
 	}
 	return output, nil
@@ -93,16 +90,8 @@ func (h CreateTransactionHandler) ServeJSONRPC(c context.Context, params *fastjs
 		return nil, jsonrpc.ErrInvalidParams()
 	}
 
-	url := fmt.Sprintf("%s/wallet/transaction", h.BackendServer)
-	fmt.Printf("url %s\n", url)
-	reqBody, _ := params.MarshalJSON()
-
-	byteBody, err := SendJsonRequest("POST", url, reqBody)
+	output, err := h.Client.CreateTransaction(req)
 	if err != nil {
-		return nil, ErrCustomise(err)
-	}
-	output := gui.CreateTransactionResponse{}
-	if err := json.Unmarshal(byteBody, &output); err != nil {
 		return nil, ErrCustomise(err)
 	}
 	return output, nil
@@ -131,16 +120,9 @@ func (h InjectTransactionHandler) ServeJSONRPC(c context.Context, params *fastjs
 		return nil, jsonrpc.ErrInvalidParams()
 	}
 
-	url := fmt.Sprintf("%s/injectTransaction", h.BackendServer)
-	fmt.Printf("url %s\n", url)
-	reqBody, _ := params.MarshalJSON()
-
-	byteBody, err := SendJsonRequest("POST", url, reqBody)
+	output, err := h.Client.InjectTransaction(req.Rawtx)
 	if err != nil {
 		return nil, ErrCustomise(err)
-	}
-	output := InjectResponse{
-		Txid: string(byteBody),
 	}
 	return output, nil
 }
