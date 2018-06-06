@@ -15,13 +15,11 @@ type (
 		Txid string `json:"txid"`
 	}
 	TransactionHandler struct {
-		BackendServer string
-		Client        *gui.Client
+		Client *gui.Client
 	}
 
 	CreateTransactionHandler struct {
-		BackendServer string
-		Client        *gui.Client
+		Client *gui.Client
 	}
 
 	InjectTransactionRequest struct {
@@ -33,8 +31,7 @@ type (
 	}
 
 	InjectTransactionHandler struct {
-		BackendServer string
-		Client        *gui.Client
+		Client *gui.Client
 	}
 )
 

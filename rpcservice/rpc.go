@@ -14,16 +14,13 @@ type (
 		Server string
 	}
 	StatusHandler struct {
-		BackendServer string
-		Client        *gui.Client
+		Client *gui.Client
 	}
 	VersionHandler struct {
-		BackendServer string
-		Client        *gui.Client
+		Client *gui.Client
 	}
 	OutputsHandler struct {
-		BackendServer string
-		Client        *gui.Client
+		Client *gui.Client
 	}
 
 	OutputsRequest struct {
@@ -38,8 +35,7 @@ type (
 	}
 
 	AddressNewHandler struct {
-		BackendServer string
-		Client        *gui.Client
+		Client *gui.Client
 	}
 )
 

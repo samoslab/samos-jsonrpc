@@ -37,34 +37,27 @@ type (
 		Password string `json:"password"`
 	}
 	BalanceHandler struct {
-		BackendServer string
-		Client        *gui.Client
+		Client *gui.Client
 	}
 	WalletBalanceHandler struct {
-		BackendServer string
-		Client        *gui.Client
+		Client *gui.Client
 	}
 
 	WalletHandler struct {
-		BackendServer string
-		Client        *gui.Client
+		Client *gui.Client
 	}
 	WalletCreateHandler struct {
-		BackendServer string
-		Client        *gui.Client
+		Client *gui.Client
 	}
 	WalletSpentHandler struct {
-		BackendServer string
-		Client        *gui.Client
+		Client *gui.Client
 	}
 
 	WalletEncryptHandler struct {
-		BackendServer string
-		Client        *gui.Client
+		Client *gui.Client
 	}
 	WalletDecryptHandler struct {
-		BackendServer string
-		Client        *gui.Client
+		Client *gui.Client
 	}
 )
 

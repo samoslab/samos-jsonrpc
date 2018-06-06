@@ -25,16 +25,13 @@ type (
 	}
 
 	BlockHandler struct {
-		BackendServer string
-		Client        *gui.Client
+		Client *gui.Client
 	}
 	BlockRangeHandler struct {
-		BackendServer string
-		Client        *gui.Client
+		Client *gui.Client
 	}
 	BlockLastNHandler struct {
-		BackendServer string
-		Client        *gui.Client
+		Client *gui.Client
 	}
 )
 
